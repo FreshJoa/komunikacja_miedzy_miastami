@@ -9,12 +9,12 @@ class Chromosome:
     def __init__(self):
         # słownik z listami zpotrzebowań(rozłożonymi na ścieżki) na każdą parę miast
         self.cities_demand = {}
-        #lista ze stanem końcowym na krawędziach- 0 - nie przekroczyło przepustowości, 1, 2, 3... - znaczy tyle dodatkowo kabli trzeba położyć na krawędzi (mamy 18 krawędzi)
+        # lista ze stanem końcowym na krawędziach- 0 - nie przekroczyło przepustowości, 1, 2, 3... - znaczy tyle dodatkowo kabli trzeba położyć na krawędzi (mamy 18 krawędzi)
         self.demand_edges_list = list(repeat(0, 18))
-        #cost - suma z demand_edges_list, czyli ilość kabli do położenia
+        # cost - suma z demand_edges_list, czyli ilość kabli do położenia
         self.cost = 0
 
-   #funkacja wypełnia chromosom
+    # funkacja wypełnia chromosom
     def fill_chromosome(self, demand_list, disintegrate=True):
         first_city = 0
         second_city = 1
@@ -26,7 +26,7 @@ class Chromosome:
                 self.get_demand_fractions_list(demand, disintegrate))
             second_city += 1
 
-    #funkcja zlicza koszt
+    # funkcja zlicza koszt
     def count_cost(self, mapping, m):
 
         for key, demand_parts_for_city in self.cities_demand.items():
@@ -36,7 +36,6 @@ class Chromosome:
 
         self.demand_edges_list = [math.floor(demand_edge / m) for demand_edge in self.demand_edges_list]
         self.cost = sum(self.demand_edges_list)
-
 
     # parametr disintegrate określa - Dezagregacja zapotrzebowań pary miast na ścieżki = True
     #                               - Agregacja zapotrzebowań pary miast na ścieżkę = False
@@ -75,7 +74,7 @@ class Mapping:
             'Link_7_11': 16,
             'Link_0_5': 17
         }
-        #słownik z mapowaniem - dla każdego demand lista list z indeksami krawędzi odpowiednio dla kazðego P_0, P_1 itd
+        # słownik z mapowaniem - dla każdego demand lista list z indeksami krawędzi odpowiednio dla kazðego P_0, P_1 itd
         self.demand_mapping = defaultdict(list)
         self.fill_demand_mapping()
 
@@ -99,9 +98,8 @@ class Mapping:
                 iterator += 1
 
 
-
 if __name__ == '__main__':
-    #demand.txt - plik z zapotrzebowaniem na pary miast
+    # demand.txt - plik z zapotrzebowaniem na pary miast
     all_demand = np.genfromtxt('demand.txt', delimiter='\n')
     mapping = Mapping()
     chromosome = Chromosome()
