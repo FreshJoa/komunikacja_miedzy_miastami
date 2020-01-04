@@ -99,6 +99,7 @@ class Mapping:
                 iterator += 1
 
 
+
 if __name__ == '__main__':
     #demand.txt - plik z zapotrzebowaniem na pary miast
     all_demand = np.genfromtxt('demand.txt', delimiter='\n')
