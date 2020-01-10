@@ -13,6 +13,8 @@ class Chromosome:
         self.demand_edges_list = list(repeat(0, 18))
         # cost - suma z demand_edges_list, czyli ilość kabli do położenia
         self.cost = 0
+        # słownik: para miast - całość zapotrzebowania dla pary
+        self.full_demand_by_pair = {}
 
     # funkacja wypełnia chromosom
     def fill_chromosome(self, demand_list, disintegrate=True):
@@ -24,7 +26,12 @@ class Chromosome:
                 second_city = first_city + 1
             self.cities_demand[f'demand_{first_city}_{second_city}'] = (
                 self.get_demand_fractions_list(demand, disintegrate))
+            # zamapiętaj w słowniku zapotrzebowanie dla pary miast
+            self.full_demand_by_pair[f'demand_{first_city}_{second_city}'] = demand
             second_city += 1
+
+        # print(self.cities_demand)
+        # print(self.full_demand_by_pair)
 
     # funkcja zlicza koszt
     def count_cost(self, mapping, m):
@@ -32,10 +39,46 @@ class Chromosome:
         for key, demand_parts_for_city in self.cities_demand.items():
             for path_number in range(0, 7):
                 for edges_number in mapping[key][path_number]:
-                    self.demand_edges_list[edges_number] += self.cities_demand[key][path_number]
+                    # obciążenie dodane do krawędzi =
+                    # ułamek zapotrzebowania dla pary jaka przez nią idzie * całkowite obciążenie
 
-        self.demand_edges_list = [math.floor(demand_edge / m) for demand_edge in self.demand_edges_list]
-        self.cost = sum(self.demand_edges_list)
+                    # print(self.cities_demand[key][path_number])
+                    # print(self.full_demand_by_pair[key])
+                    # print(self.cities_demand[key][path_number] * self.full_demand_by_pair[key])
+
+                    self.demand_edges_list[edges_number] += (
+                                self.cities_demand[key][path_number] * self.full_demand_by_pair[key])
+
+        # self.demand_edges_list = [math.floor(demand_edge / m) for demand_edge in self.demand_edges_list]
+        # self.cost = sum(self.demand_edges_list)
+
+        print(self.demand_edges_list)
+        for edges_number in range(0, 18):
+            if math.floor(self.demand_edges_list[edges_number] / m) > 1:
+                self.cost += 1
+
+        return self.cost
+
+    def crossover(self, parent_a, parent_b, crossover_probability):
+
+        # gen to rozkład zapotrzebowania na ścieżki dla pary miast - element słownika cities_demand
+        for gene_key, gene_val in parent_a.cities_demand.items():
+            if np.random.random_sample() < crossover_probability:
+                self.cities_demand[gene_key] = gene_val
+            else:
+                self.cities_demand[gene_key] = parent_b.cities_demand[gene_key]
+
+        # liczone przy ocenianiu
+        self.demand_edges_list = list(repeat(0, 18))
+
+        # sumaryczne zapotrzebowanie dla pary się nie zmienia
+        self.full_demand_by_pair = parent_a.full_demand_by_pair
+
+    def mutation(self, mutation_probability, disintegrate=True):
+        for gene_key, gene_val in self.cities_demand.items():
+            if np.random.random_sample() < mutation_probability:
+                self.cities_demand[gene_key] = (
+                    self.get_demand_fractions_list(self.full_demand_by_pair[gene_key], disintegrate))
 
     # parametr disintegrate określa - Dezagregacja zapotrzebowań pary miast na ścieżki = True
     #                               - Agregacja zapotrzebowań pary miast na ścieżkę = False
@@ -43,11 +86,15 @@ class Chromosome:
         if disintegrate:
             random_list_of_demand_fractions = np.random.random(7)
             random_list_of_demand_fractions /= random_list_of_demand_fractions.sum()
-            demand_fractions_list = random_list_of_demand_fractions * city_demand
+            # demand_fractions_list = random_list_of_demand_fractions * city_demand
+            # część zapotrzebowania jako ułamek
+            demand_fractions_list = random_list_of_demand_fractions
+
         else:
             path_number = random.randint(0, 6)
             demand_fractions_list = np.zeros(7)
-            demand_fractions_list[path_number] = city_demand
+            # demand_fractions_list[path_number] = city_demand
+            demand_fractions_list[path_number] = 1
 
         return np.ndarray.tolist(demand_fractions_list)
 
@@ -96,12 +143,70 @@ class Mapping:
                 list_of_links = [self.links_dict.get(link) for link in row[2:len(row) - 1]]
                 self.demand_mapping[f'demand_{first_city}_{second_city}'].append(list_of_links)
                 iterator += 1
+        # print(self.demand_mapping)
+
+
+class Algorithm:
+    def __init__(self, modularity, population_number, crossover_probability, mutation_probabilty):
+        self.modularity = modularity
+        self.population_number = population_number
+        self.crossover_probability = crossover_probability
+        self.mutation_probabilty = mutation_probabilty
+
+        # demand.txt - plik z zapotrzebowaniem na pary miast
+        self.all_demand = np.genfromtxt('demand.txt', delimiter='\n')
+        self.mapping = Mapping().demand_mapping
+
+        # populacja początkowa
+        self.population = []
+
+        for _ in range(self.population_number):
+            self.population.append(Chromosome())
+
+        for chromosome in self.population:
+            chromosome.fill_chromosome(self.all_demand)
+
+    def run(self, iterations):
+
+        # przykład  - porównanie dwóch rodziców i ich dziecka
+
+        # print(self.population[0].cities_demand)
+        # print(self.population[1].cities_demand)
+        # child = Chromosome()
+        # child.crossover(self.population[0], self.population[1], self.crossover_probability)
+        # child.mutation(self.mutation_probabilty)
+        # print(child.cities_demand)
+
+        for i in range(iterations):
+
+            # tyle dzieci z krzyżowań ile osobników w populacji - populacja się podwaja
+
+            children = []
+            for _ in self.population:
+                parent_a = self.population[np.random.randint(self.population_number)]
+                parent_b = self.population[np.random.randint(self.population_number)]
+                child = Chromosome()
+                child.crossover(parent_a, parent_b, self.crossover_probability)
+                children.append(child)
+
+            self.population = self.population + children
+
+            # mutacja
+            for p in self.population:
+                p.mutation(self.mutation_probabilty)
+
+            # sortowanie od najlepiej do najgorzej przystosowanych
+            self.population.sort(key=lambda p: p.count_cost(self.mapping, self.modularity), reverse=True)
+
+            # przycięcie populacji do pierwotnego rozmiaru
+            self.population = self.population[:self.population_number]
+
+        for p in self.population:
+            print(p.cities_demand)
+            print(p.cost)
 
 
 if __name__ == '__main__':
-    # demand.txt - plik z zapotrzebowaniem na pary miast
-    all_demand = np.genfromtxt('demand.txt', delimiter='\n')
-    mapping = Mapping()
-    chromosome = Chromosome()
-    chromosome.fill_chromosome(all_demand)
-    chromosome.count_cost(mapping.demand_mapping, 10000)
+    #parametry: m, populacja początkowa, prawdopodobieństwo krzyżowania i mutacji
+    algorithm = Algorithm(63, 10, 0.4, 0.2)
+    algorithm.run(5)
