@@ -83,20 +83,26 @@ class Chromosome:
     # parametr disintegrate określa - Dezagregacja zapotrzebowań pary miast na ścieżki = True
     #                               - Agregacja zapotrzebowań pary miast na ścieżkę = False
     def get_demand_fractions_list(self, city_demand, disintegrate):
+
+        # część zapotrzebowania jako ułamek
+
         if disintegrate:
-            random_list_of_demand_fractions = np.random.random(7)
-            random_list_of_demand_fractions /= random_list_of_demand_fractions.sum()
-            # demand_fractions_list = random_list_of_demand_fractions * city_demand
-            # część zapotrzebowania jako ułamek
-            demand_fractions_list = random_list_of_demand_fractions
+            points_of_division = np.random.random(6)
+            points_of_division.sort()
+            demand_fractions_list = [points_of_division[0]]
+            for i in range(1, 6):
+                demand_fractions_list.append(points_of_division[i] - points_of_division[i - 1])
+            demand_fractions_list.append(1 - points_of_division[5])
+
+            return demand_fractions_list
 
         else:
             path_number = random.randint(0, 6)
             demand_fractions_list = np.zeros(7)
-            # demand_fractions_list[path_number] = city_demand
             demand_fractions_list[path_number] = 1
+            np.ndarray.tolist(demand_fractions_list)
 
-        return np.ndarray.tolist(demand_fractions_list)
+        return demand_fractions_list
 
 
 class Mapping:
