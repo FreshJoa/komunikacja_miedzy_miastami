@@ -3,6 +3,7 @@ from itertools import repeat
 import numpy as np
 import random
 import math
+import sys
 
 
 class Chromosome:
@@ -42,9 +43,9 @@ class Chromosome:
                     # obciążenie dodane do krawędzi =
                     # ułamek zapotrzebowania dla pary jaka przez nią idzie * całkowite obciążenie
 
-                    print(self.cities_demand[key][path_number])
-                    print(self.full_demand_by_pair[key])
-                    print(self.cities_demand[key][path_number] * self.full_demand_by_pair[key])
+                    # print(self.cities_demand[key][path_number])
+                    # print(self.full_demand_by_pair[key])
+                    # print(self.cities_demand[key][path_number] * self.full_demand_by_pair[key])
 
                     self.demand_edges_list[edges_number] += (
                                 self.cities_demand[key][path_number] * self.full_demand_by_pair[key])
@@ -178,6 +179,9 @@ class Algorithm:
         # child.mutation(self.mutation_probabilty)
         # print(child.cities_demand)
 
+        with open('results.txt', 'w') as file:
+            file.write('licznosc_populacji\tprawd_krzyzowania\tprawd_mutacji\tmin_koszt\n')
+
         for i in range(iterations):
 
             # tyle dzieci z krzyżowań ile osobników w populacji - populacja się podwaja
@@ -197,10 +201,13 @@ class Algorithm:
                 p.mutation(self.mutation_probabilty)
 
             # sortowanie od najlepiej do najgorzej przystosowanych
-            self.population.sort(key=lambda p: p.count_cost(self.mapping, self.modularity), reverse=True)
+            self.population.sort(key=lambda p: p.count_cost(self.mapping, self.modularity), reverse=False)
 
             # przycięcie populacji do pierwotnego rozmiaru
             self.population = self.population[:self.population_number]
+
+            with open('results.txt', 'a') as file:
+                file.write('{}\t{}\t{}\t{}\n'.format(len(self.population), self.crossover_probability, self.mutation_probabilty, self.population[0].cost))
 
         for p in self.population:
             print(p.cities_demand)
@@ -209,5 +216,9 @@ class Algorithm:
 
 if __name__ == '__main__':
     #parametry: m, populacja początkowa, prawdopodobieństwo krzyżowania i mutacji
-    algorithm = Algorithm(10, 10, 0.4, 0.2)
-    algorithm.run(10)
+    if len(sys.argv) > 1:
+        algorithm = Algorithm(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+        algorithm.run(sys.argv[5])
+    else:
+        algorithm = Algorithm(10, 10, 0.5, 0.4)
+        algorithm.run(10)
