@@ -42,20 +42,15 @@ class Chromosome:
                     # obciążenie dodane do krawędzi =
                     # ułamek zapotrzebowania dla pary jaka przez nią idzie * całkowite obciążenie
 
-                    # print(self.cities_demand[key][path_number])
-                    # print(self.full_demand_by_pair[key])
-                    # print(self.cities_demand[key][path_number] * self.full_demand_by_pair[key])
+                    print(self.cities_demand[key][path_number])
+                    print(self.full_demand_by_pair[key])
+                    print(self.cities_demand[key][path_number] * self.full_demand_by_pair[key])
 
                     self.demand_edges_list[edges_number] += (
                                 self.cities_demand[key][path_number] * self.full_demand_by_pair[key])
 
-        # self.demand_edges_list = [math.floor(demand_edge / m) for demand_edge in self.demand_edges_list]
-        # self.cost = sum(self.demand_edges_list)
-
-        print(self.demand_edges_list)
-        for edges_number in range(0, 18):
-            if math.floor(self.demand_edges_list[edges_number] / m) > 1:
-                self.cost += 1
+        self.demand_edges_list = [math.ceil(demand_edge / m) for demand_edge in self.demand_edges_list]
+        self.cost = sum(self.demand_edges_list)
 
         return self.cost
 
@@ -214,5 +209,5 @@ class Algorithm:
 
 if __name__ == '__main__':
     #parametry: m, populacja początkowa, prawdopodobieństwo krzyżowania i mutacji
-    algorithm = Algorithm(63, 10, 0.4, 0.2)
-    algorithm.run(5)
+    algorithm = Algorithm(10, 10, 0.4, 0.2)
+    algorithm.run(10)
