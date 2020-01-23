@@ -7,18 +7,36 @@ import sys
 
 
 class Chromosome:
+    """
+    Klasa definiująca pojedynczy chromosom.
+    :param cities_demand: słownik z listami zapotrzebowań (rozłożonymi na ścieżki) na każdą parę miast
+    :param demand_edges_list: lista liczb kabli - liczba kabli, którą trzeba położyć na danej krawędzi, znajduje się na miejscu w liście odpowiadającym numerowi krawędzi
+    :param cost: sumaryczna liczba kabli
+    :param full_demand_by_pair: sumaryczne zapotrzebowanie dla pary miast
+    :type cities_demand: dict
+    :type demand_edges_list: list
+    :type cost: int
+    :type full_demand_by_pair: dict
+    """
     def __init__(self):
-        # słownik z listami zpotrzebowań(rozłożonymi na ścieżki) na każdą parę miast
+        """
+        Inicjuje pola klasy.
+        """
+
         self.cities_demand = {}
-        # lista ze stanem końcowym na krawędziach- 0 - nie przekroczyło przepustowości, 1, 2, 3... - znaczy tyle dodatkowo kabli trzeba położyć na krawędzi (mamy 18 krawędzi)
         self.demand_edges_list = list(repeat(0, 18))
-        # cost - suma z demand_edges_list, czyli ilość kabli do położenia
         self.cost = 0
-        # słownik: para miast - całość zapotrzebowania dla pary
         self.full_demand_by_pair = {}
 
     # funkacja wypełnia chromosom
     def fill_chromosome(self, demand_list, disintegrate=True):
+        """
+        Wypełnia rozkład zapotrzebowań na ścieżki (cities_demand) i przypisanie sumarycznego zapotrzebowania dla pary miast (full_demand_by_pair).
+        :param demand_list: lista sumarycznych zapotrzebowań w kolejności odpowiadającej przyjętej kolejności par miast
+        :param disintegrate: czy zapotrzebowanie dla każdej pary ma być rozłożone między ścieżkami, czy ma być wybrana jedna
+        :type demand_list: list
+        :type disintegrate: boolean
+        """
         first_city = 0
         second_city = 1
         for demand in demand_list:
@@ -27,25 +45,25 @@ class Chromosome:
                 second_city = first_city + 1
             self.cities_demand[f'demand_{first_city}_{second_city}'] = (
                 self.get_demand_fractions_list(demand, disintegrate))
-            # zamapiętaj w słowniku zapotrzebowanie dla pary miast
             self.full_demand_by_pair[f'demand_{first_city}_{second_city}'] = demand
             second_city += 1
 
-        # print(self.cities_demand)
-        # print(self.full_demand_by_pair)
-
-    # funkcja zlicza koszt
     def count_cost(self, mapping, m):
+        """
+        Zlicza koszt realizacji sieci według danych w chromosomie (liczbę kabli).
+        :param mapping: mapowanie krawędzi na ścieżki między miastami
+        :param m: modularność krawędzi
+        :type mapping: list
+        :type m: int
+        :return: sumaryczny koszt
+        :rtype: int
+        """
 
         for key, demand_parts_for_city in self.cities_demand.items():
             for path_number in range(0, 7):
                 for edges_number in mapping[key][path_number]:
                     # obciążenie dodane do krawędzi =
                     # ułamek zapotrzebowania dla pary jaka przez nią idzie * całkowite obciążenie
-
-                    # print(self.cities_demand[key][path_number])
-                    # print(self.full_demand_by_pair[key])
-                    # print(self.cities_demand[key][path_number] * self.full_demand_by_pair[key])
 
                     self.demand_edges_list[edges_number] += (
                                 self.cities_demand[key][path_number] * self.full_demand_by_pair[key])
@@ -56,6 +74,15 @@ class Chromosome:
         return self.cost
 
     def crossover(self, parent_a, parent_b, crossover_probability):
+        """
+        Przeprowadza krzyżowanie wielopunktowe dwóch rodziców, których dzieckiem będzie dany chromosom. Wypełnia te same pola, co fill_chromosome.
+        :param parent_a: rodzic
+        :param parent_b: rodzic
+        :type parent_a: Chromosome
+        :type parent_b: Chromosome
+        :param crossover_probability: prawdopodobieństwo krzyżowania
+        :type crossover_probability: float
+        """
 
         # gen to rozkład zapotrzebowania na ścieżki dla pary miast - element słownika cities_demand
         for gene_key, gene_val in parent_a.cities_demand.items():
@@ -71,14 +98,31 @@ class Chromosome:
         self.full_demand_by_pair = parent_a.full_demand_by_pair
 
     def mutation(self, mutation_probability, disintegrate=True):
+        """
+        Przeprowadza mutację. Zgodnie z prawdopodobieństwem mutacji dla każdego genu (rozkładu zapotrzebowań dla pary miast) zastępuje go nowym.
+        :param mutation_probability: prawdopodobieństwo zastąpienia genu
+        :param disintegrate: czy zapotrzebowanie dla każdej pary jest rozłożone między ścieżkami, czy jest wybrana jedna
+        :param mutation_probability: float
+        :param disintegrate: boolean
+        """
         for gene_key, gene_val in self.cities_demand.items():
             if np.random.random_sample() < mutation_probability:
                 self.cities_demand[gene_key] = (
                     self.get_demand_fractions_list(self.full_demand_by_pair[gene_key], disintegrate))
 
-    # parametr disintegrate określa - Dezagregacja zapotrzebowań pary miast na ścieżki = True
-    #                               - Agregacja zapotrzebowań pary miast na ścieżkę = False
+
     def get_demand_fractions_list(self, city_demand, disintegrate):
+        """
+        Zależnie od wartości parametru disintegrate:
+        * True - rozlosowuje między ścieżkami dla zadanej pary miast, jaki ułamek zapotrzebowania mają spełniać
+        * False - losuje, która ścieżka ma spełniać zapotrzebowanie
+        :param city_demand: para miast, dla której ma być określony rozkład zapotrzebowania na ścieżki
+        :param disintegrate: określa tryb działania
+        :type city_demand:
+        :type disintegrate:
+        :return: rozkład zapotrzebowania na ścieżki
+        :rtype: array
+        """
 
         # część zapotrzebowania jako ułamek
 
@@ -102,7 +146,17 @@ class Chromosome:
 
 
 class Mapping:
+    """
+    Klasa zawierająca przyjęte numery ścieżek i mapowanie numerów krawędzi na ścieżki między parami miast.
+    :param links_dict: mapowanie krawędzi na przyjęte numery krawędzi
+    :type links_dict: dict
+    :param demand_mapping: mapowanie numerów krawędzi na ścieżki między parami miast (słownik list)
+    :type demand_mapping: dict
+    """
     def __init__(self):
+        """
+        Przypisuje mapowania do zmiennych.
+        """
         self.links_dict = {
             'Link_0_10': 0,
             'Link_0_2': 1,
@@ -123,11 +177,14 @@ class Mapping:
             'Link_7_11': 16,
             'Link_0_5': 17
         }
-        # słownik z mapowaniem - dla każdego demand lista list z indeksami krawędzi odpowiednio dla kazðego P_0, P_1 itd
+
         self.demand_mapping = defaultdict(list)
         self.fill_demand_mapping()
 
     def fill_demand_mapping(self):
+        """
+        Realizuje mapowanie numerów krawędzi na ścieżki między parami miast.
+        """
         first_city = 0
         second_city = 1
         iterator = 0
@@ -145,11 +202,31 @@ class Mapping:
                 list_of_links = [self.links_dict.get(link) for link in row[2:len(row) - 1]]
                 self.demand_mapping[f'demand_{first_city}_{second_city}'].append(list_of_links)
                 iterator += 1
-        # print(self.demand_mapping)
 
 
 class Algorithm:
+    """
+    Klasa algorytmu genetycznego.
+    :param modularity: przepustowość jednego kabla
+    :type modularity: int
+    :param population_number: początkowa liczność populacji
+    :type population_number: int
+    :param crossover_probability: prawdopodobieństwo krzyżowania
+    :type crossover_probability: float
+    :param mutation_probabilty: prawdopodobieństwo zastąpienia genu
+    :type mutation_probabilty: float
+    :param all_demand: sumaryczne zapotrzebowania dla kolejnych par miast
+    :param all_demand: list
+    :param mapping: mapowanie krawędzi na ścieżki między parami miast
+    :type mapping: dict
+    :param population: populacja - tablica chromosomów
+    :type population: array
+
+    """
     def __init__(self, modularity, population_number, crossover_probability, mutation_probabilty):
+        """
+        Inicjuje pola klaasy.
+        """
         self.modularity = modularity
         self.population_number = population_number
         self.crossover_probability = crossover_probability
@@ -169,6 +246,11 @@ class Algorithm:
             chromosome.fill_chromosome(self.all_demand)
 
     def run(self, iterations):
+        """
+        Wykonuje algorytm przez zadaną liczbę iteracji.
+        :param iterations: liczba iteracji algorytmu
+        :type iterations: int
+        """
 
         # przykład  - porównanie dwóch rodziców i ich dziecka
 
@@ -215,10 +297,18 @@ class Algorithm:
 
 
 if __name__ == '__main__':
-    #parametry: m, populacja początkowa, prawdopodobieństwo krzyżowania i mutacji
+    """
+    Uruchamia algorytm z parametrami podanymi przy uruchomieniu programu lub z domyślnymi.
+    Parametry uruchomienia:
+    * modularność, 
+    * populacja początkowa, 
+    * prawdopodobieństwo krzyżowania, 
+    * prawdopodobieństwo mutacji,
+    * liczba iteracji.
+    """
     if len(sys.argv) > 1:
         algorithm = Algorithm(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
         algorithm.run(sys.argv[5])
     else:
-        algorithm = Algorithm(10, 10, 0.5, 0.4)
-        algorithm.run(10)
+        algorithm = Algorithm(100, 10, 0.4, 0.0)
+        algorithm.run(500)
